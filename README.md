@@ -4,10 +4,21 @@
 wip
 
 ## 1. Requisitos
-wip
+- Instalação e configuração do DOCKER ou CONTAINERD no
+host EC2
+  - Ponto adicional para o trabalho utilizar a instalação via script de
+Start Instance (user_data.sh)
+- Efetuar Deploy de uma aplicação Wordpress com:
+  - Container de aplicação
+  - RDS database Mysql
+- Configuração da utilização do serviço EFS AWS para estáticos
+do container de aplicação Wordpress
+- Configuração do serviço de Load Balancer AWS para a aplicação
+Wordpress
+- Configurar Auto Scaling Group para as duas instâncias.
 
-## 2. Configurações 
-### 2.x VPC e Subnets
+## Configurações 
+### VPC e Subnets
 Para VPC, podemos manter a padrão, porém iremos criar 3 subnets adicionais.
 Navegue para o dashboard de VPC e selecione a aba de subnets para criar mais.
 
@@ -42,4 +53,27 @@ Navegue para a aba de route tables e crie uma route table com nome `rt-public` e
   - Destination: `0.0.0.0/0` 
   - Target: `NAT Gateway` (NAT01)
 
- 
+### Bastion Host
+Crie uma instância com as seguintes configurações:
+- Imagem: `Amazon Linux 2`
+- Tipo: `t3.small`
+- VPC: `Padrão`
+- Subnet: `sub-public01`
+- Auto-associação de endereço IP: `Ativo`
+- Security group:
+  Tipo | Protocolo | Intervalo de portas | Origem
+  ------------- | ------------- | ------------- | -------------
+  SSH | TCP | 22 | 0.0.0.0/0
+
+### Instância privada para o Wordpress
+Crie uma instância com as seguintes configurações:
+- Imagem: `Amazon Linux 2`
+- Tipo: `t3.small`
+- VPC: `Padrão`
+- Subnet: `sub-private01`
+- Security group:
+  Tipo | Protocolo | Intervalo de portas | Origem
+  ------------- | ------------- | ------------- | -------------
+  SSH | TCP | 22 | `IP privado do seu Bastion host`
+  HTTP | TCP | 80 | 0.0.0.0/0
+  HTTPS | TCP | 443 | 0.0.0.0/0
