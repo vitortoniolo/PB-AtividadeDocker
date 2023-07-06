@@ -19,23 +19,28 @@ Wordpress
 
 ## Configurações 
 ### VPC e Subnets
-Para VPC, podemos manter a padrão, porém iremos criar 3 subnets adicionais.
-Navegue para o dashboard de VPC e selecione a aba de subnets para criar mais.
+Crie uma nova VPC, nomeando-a (ex: Wordpress) e decidindo o bloco IPv4 CIDR (ex: 172.28.0.0/16)
 
-- Subnet privada 1
-  - Nome: `sub-private01`
-  - AZ: `us-east-1a`
-  - IPv4 CIDR: `172.31.0.0/24` (ou o equivalente para sua VPC)
-- Subnet privada 2
-  - Nome: `sub-private02`
-  - AZ: `us-east-1b`
-  - IPv4 CIDR: `172.31.1.0/24`
+Agora navegue para subnets e crie conforme o seguinte:
 - Subnet pública
   - Nome: `sub-public01`
   - AZ: `us-east-1a`
-  - IPv4 CIDR: `172.31.2.0/24`
+  - IPv4 CIDR: `172.28.0.0/24`
   - Após criar, selecione as configurações e cheque a caixa de `Enable auto-assign public IPv4 address`
-
+- Subnet pública 2
+  - Nome: `sub-public02`
+  - AZ: `us-east-1b`
+  - IPv4 CIDR: `172.28.1.0/24`
+  - Após criar, selecione as configurações e cheque a caixa de `Enable auto-assign public IPv4 address`
+- Subnet privada 1
+  - Nome: `sub-private01`
+  - AZ: `us-east-1a`
+  - IPv4 CIDR: `172.28.2.0/24` (ou o equivalente para sua VPC)
+- Subnet privada 2
+  - Nome: `sub-private02`
+  - AZ: `us-east-1b`
+  - IPv4 CIDR: `172.28.3.0/24`
+  
 Agora vá para a aba NAT gateways e crie um novo gateway:
 - Nome: `NAT01`
 - Subnet: `sub-public01`
@@ -56,24 +61,50 @@ Navegue para a aba de route tables e crie uma route table com nome `rt-public` e
 ### Bastion Host
 Crie uma instância com as seguintes configurações:
 - Imagem: `Amazon Linux 2`
-- Tipo: `t3.small`
-- VPC: `Padrão`
+- Tipo: `t2.micro`
+- VPC: `Wordpress`
 - Subnet: `sub-public01`
 - Auto-associação de endereço IP: `Ativo`
 - Security group:
   Tipo | Protocolo | Intervalo de portas | Origem
   ------------- | ------------- | ------------- | -------------
-  SSH | TCP | 22 | 0.0.0.0/0
+  SSH | TCP | 22 | `Seu IP`
 
 ### Instância privada para o Wordpress
 Crie uma instância com as seguintes configurações:
 - Imagem: `Amazon Linux 2`
 - Tipo: `t3.small`
-- VPC: `Padrão`
+- VPC: `Wordpress`
 - Subnet: `sub-private01`
+- Armazenamento: `20 GB gp3`
 - Security group:
   Tipo | Protocolo | Intervalo de portas | Origem
   ------------- | ------------- | ------------- | -------------
   SSH | TCP | 22 | `IP privado do seu Bastion host`
   HTTP | TCP | 80 | 0.0.0.0/0
   HTTPS | TCP | 443 | 0.0.0.0/0
+  NFS | TCP | 2049 | `Bloco CIDR do EFS`
+
+### EFS
+Crie um novo EFS, selecionando a VPC criada anteriormente.
+
+Crie um security group para o EFS:
+  Tipo | Protocolo | Intervalo de portas | Origem
+  ------------- | ------------- | ------------- | -------------
+  NFS | TCP | 2049 | `Security group da instância WP`
+
+Abra as configurações do EFS e vá para a aba `Network`. Mude os security groups para o recém criado.
+
+Acessando a instância pelo Bastion Host, execute `sudo mkdir /mnt/nfs`. Para montar o NFS, clique em `Attach` na tela do mesmo e copie o comando de `Mount via IP`, certifique-se de mudar o caminho de montagem.
+
+### RDS
+Crie um novo rds, com as seguintes configurações:
+- Engine type: `MySQL`
+- Templates: `Free tier`
+- DB instance identifier: `wordpressDB`
+- VPC: `Wordpress`
+- Public Access: `Yes`
+- VPC Security Group: `SG criado anteriormente`
+- Informações de login: `Seu critério`
+
+  
