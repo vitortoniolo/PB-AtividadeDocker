@@ -85,6 +85,10 @@ Crie uma instância com as seguintes configurações:
   HTTPS | TCP | 443 | 0.0.0.0/0
   NFS | TCP | 2049 | `Bloco CIDR do EFS`
 
+###Configurando a instância para acesso:
+
+
+
 ### EFS
 Crie um novo EFS, selecionando a VPC criada anteriormente.
 
@@ -98,6 +102,11 @@ Abra as configurações do EFS e vá para a aba `Network`. Mude os security grou
 Acessando a instância pelo Bastion Host, execute `sudo mkdir /mnt/nfs`. Para montar o NFS, clique em `Attach` na tela do mesmo e copie o comando de `Mount via IP`, certifique-se de mudar o caminho de montagem.
 
 ### RDS
+Primeiramente, crie um novo security group para o RDS:
+  Tipo | Protocolo | Intervalo de portas | Origem
+  ------------- | ------------- | ------------- | -------------
+  MYSQL | TCP | 3306 | `Bloco CIDR do VPC`
+
 Crie um novo rds, com as seguintes configurações:
 - Engine type: `MySQL`
 - Templates: `Free tier`
@@ -106,5 +115,23 @@ Crie um novo rds, com as seguintes configurações:
 - Public Access: `Yes`
 - VPC Security Group: `SG criado anteriormente`
 - Informações de login: `Seu critério`
+- Initial databasename: `wpDB`
 
+### Load Balancer
+- Primeiro, crie um target group:
+  - Tipo: `Instâncias`
+  - VPC: `wordpress`
+  - Registre a instância do wordpress
+- Agora um security group:
+   Tipo | Protocolo | Intervalo de portas | Origem
+  ------------- | ------------- | ------------- | -------------
+  HTTP | TCP | 80 | `0.0.0.0/0`
+- E finalmente, o load balancer:
+  - Tipo: `Application Load Balancer`
+  - Scheme: `Internet-facing`
+  - VPC: `wordpress`
+  - Mappings: `Marque as duas zonas e selecione as subnets publicas`
+  - Security groups: `Selecione o grupo criado para o LB`
+  - Listener: `Selecione o target group criado`
   
+
