@@ -1,9 +1,7 @@
 # Servidor Wordpress via Docker em AWS
 ![Screenshot_5](https://github.com/vitortoniolo/PB-AtividadeDocker/assets/133904035/cf3155bd-4aed-4331-83d2-bee70cf990ef)
-## Sumário
-wip
 
-## 1. Requisitos
+## Requisitos
 - Instalação e configuração do DOCKER ou CONTAINERD no
 host EC2
   - Ponto adicional para o trabalho utilizar a instalação via script de
@@ -21,7 +19,7 @@ Wordpress
 ### VPC e Subnets
 Crie uma nova VPC, nomeando-a (ex: Wordpress) e decidindo o bloco IPv4 CIDR (ex: 172.28.0.0/16)
 
-Agora navegue para subnets e crie conforme o seguinte:
+Agora navegue para subnets e crie conforme o seguinte (o que não for específicado deve ser mantido padrão):
 - Subnet pública
   - Nome: `sub-public01`
   - AZ: `us-east-1a`
@@ -84,9 +82,29 @@ Crie uma instância com as seguintes configurações:
   HTTP | TCP | 80 | 0.0.0.0/0
   HTTPS | TCP | 443 | 0.0.0.0/0
   NFS | TCP | 2049 | `Bloco CIDR do EFS`
+- Script user data (mude o ip):
+```bash
+#!/bin/bash
+sudo yum update -y
+sudo yum install nfs-utils -y
+sudo mkdir -p /mnt/nfs
+sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport <ip do efs>:/ /mnt/nfs
+sudo echo "<ip do efs>:/    /mnt/nfs         nfs    defaults          0   0 " >> /etc/fstab
+sudo yum install docker -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -a -G docker ec2-user
+sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+  
 
-###Configurando a instância para acesso:
+### Configurando a instância para acesso:
+Na sua máquina, abra o terminal e execute: `ssh-add <suachave.pem>`.
 
+Agora você deve acessar o seu bastion host com: `ssh -A -i <suachave.pem> ec2-user@<IP público da instância>`
+
+E a instância wordpress com: `ssh ec2-user@<IP privado da instância>`
 
 
 ### EFS
@@ -133,5 +151,29 @@ Crie um novo rds, com as seguintes configurações:
   - Mappings: `Marque as duas zonas e selecione as subnets publicas`
   - Security groups: `Selecione o grupo criado para o LB`
   - Listener: `Selecione o target group criado`
+ 
+### Auto Scaling
+No console EC2, selecione a nossa instância Wordpress e vá em `Images and templates > Create Image`. Escolha um nome e mantenha as configurações padrões.
+
+Agora abra `Launch Templates` e crie um modelo novo com as seguintes configurações:
+- Imagem: `Selecione a imagem criada anteriormente`
+- Tipo de instância: `t2.micro`
+- Key pair: `Selecione uma existente ou crie uma nova`
+- Security group: `Selecione o mesmo da instância Wordpress`
+
+Podemos agora criar o Auto Scaling Group, seguindo estes parâmetros:
+- Nome: `ASG-WP`
+- Launch template: `Selecione a template criada aneriormente`
+- VPC: `wordpress`
+- AZs: `Selecione as duas subnets privadas`
+- Load balancing: `Selecione o nosso grupo de LB`
+- Health checks: `Ative o Elastic Load Balancing health checks`
+- Group size:
+  - Desired capacity: `2`
+  - Minimum capacity: `2`
+  - Maximum capacity: `4` 
+- Scaling policies: `Target tracking scaling policy`
+  - Target value: 70
+ 
   
 
