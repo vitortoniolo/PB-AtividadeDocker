@@ -102,6 +102,7 @@ sudo usermod -a -G docker ec2-user
 sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 ```
+
   
 
 ### Configurando a instância para acesso:
@@ -112,6 +113,26 @@ Agora você deve acessar o seu bastion host com: `ssh -A -i <suachave.pem> ec2-u
 E a instância wordpress com: `ssh ec2-user@<IP privado da instância>`
 
 Alternativamente, você pode copiar a chave para dentro de seu bastion host com o comando: `scp -i <suachave.pem> ec2-user@<ip público do bastion>:/home/ec2-user`
+
+### Subindo o container Wordpress:
+Acessando a instância via o bastion host, crie um arquivo `docker-compose.yaml` com o seguinte código:
+```yaml
+version: '3'
+services:
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: <Endpoint do banco de dados criado>
+      WORDPRESS_DB_USER: <Usuário criado>
+      WORDPRESS_DB_PASSWORD: <Senha criada>
+      WORDPRESS_DB_NAME: <Banco de dados inicial criado>
+    volumes:
+      - /mnt/nfs/wordpress:/var/www/html
+```
+Execute `docker-compose up -d` para subir o container.
 
 ### EFS
 Crie um novo EFS, selecionando a VPC criada anteriormente.
