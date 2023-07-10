@@ -15,6 +15,11 @@ do container de aplicação Wordpress
 Wordpress
 - Configurar Auto Scaling Group para as duas instâncias.
 
+## Integrantes
+- [Pedro Liu](https://github.com/PedroTxfl/Projeto_docker_wordpress) 
+- [Bruno Marques](https://github.com/BrunoMarques1/Atividade_DOCKER/tree/main)
+- [José Toniolo](https://github.com/vitortoniolo/PB-AtividadeDocker)
+  
 ## Configurações 
 ### VPC e Subnets
 Crie uma nova VPC, nomeando-a (ex: Wordpress) e decidindo o bloco IPv4 CIDR (ex: 172.28.0.0/16)
@@ -106,6 +111,7 @@ Agora você deve acessar o seu bastion host com: `ssh -A -i <suachave.pem> ec2-u
 
 E a instância wordpress com: `ssh ec2-user@<IP privado da instância>`
 
+Alternativamente, você pode copiar a chave para dentro de seu bastion host com o comando: `scp -i <suachave.pem> ec2-user@<ip público do bastion>:/home/ec2-user`
 
 ### EFS
 Crie um novo EFS, selecionando a VPC criada anteriormente.
